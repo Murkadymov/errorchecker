@@ -1,7 +1,0 @@
-wb:
-  hostURL:
-    - "http://content-card-ingress-controller.content-card.k8s.portal-dl/"
-    - "http://content-card-ingress-controller.content-card.k8s.portal-dp/"
-    - "http://content-card-ingress-controller.content-card.k8s.portal-el/"
-band:
-  bandURL: "https://band.wb.ru/hooks/"
