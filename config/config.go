@@ -11,9 +11,10 @@ import (
 
 type Config struct {
 	WB struct {
-		Host    string   `env:"HOST"`
-		Cluster []string `yaml:"hostURL"`
-		Cookie  string   `env:"COOKIE_SECRET"`
+		Host     string   `env:"HOST"`
+		Cluster  []string `yaml:"hostURL"`
+		Cookie   string   `env:"COOKIE_SECRET"`
+		Interval int      `yaml:"interval"`
 	} `yaml:"wb"`
 	Band struct {
 		BandURL     string `yaml:"bandURL"`

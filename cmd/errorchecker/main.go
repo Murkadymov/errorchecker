@@ -33,7 +33,7 @@ func main() {
 	)
 
 	headers := errorchecker.NewHeadersStorage(os.Getenv("COOKIE_SECRET"))
-	httpClient.RunRequests(ctx, headers, log, wg)
+	httpClient.RunRequests(ctx, cfg.WB.Interval, headers, log, wg)
 
 	<-ctx.Done()
 

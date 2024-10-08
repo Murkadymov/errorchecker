@@ -74,9 +74,11 @@ func (h *ErrorChecker) StopChecker() {
 	h.stopChannel <- struct{}{}
 }
 
-func (h *ErrorChecker) RunRequests(ctx context.Context, headers *errorchecker.HeadersStorage, log *slog.Logger, wg *sync.WaitGroup) {
-	tickerTableList := time.NewTicker(60 * time.Second)
-	tickerGetImt := time.NewTicker(60 * time.Second)
+func (h *ErrorChecker) RunRequests(ctx context.Context, interval int, headers *errorchecker.HeadersStorage, log *slog.Logger, wg *sync.WaitGroup) {
+
+	tickerTableList := time.NewTicker(time.Duration(interval) * time.Second)
+	tickerGetImt := time.NewTicker(time.Duration(interval) * time.Second)
+
 	h.BandAPI.SendMessage(ctx, bandclient.TextLine{ //TODO: err
 		Text: "**WB System Alerter has started...**",
 	})
@@ -195,7 +197,7 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 			//}
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
 
-			log.Info(
+			log.Error(
 				"request failed",
 				slog.Bool("OK", false),
 				slog.String("op", op),
@@ -286,7 +288,7 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 			//	return fmt.Errorf("%s.SendMessage: %w", err)
 			//}
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
-			log.Info(
+			log.Error(
 				"successful request",
 				slog.Bool("OK", false),
 				slog.String("op", op),
@@ -294,7 +296,12 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 			)
 
 			msg := bandclient.NewErrMsg(
-				mentionMembers, resp.Status, getImtEndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, fmt.Sprintf("`%s`", stringBody),
+				mentionMembers,
+				resp.Status,
+				getImtEndPoint,
+				strings.Trim(strings.Trim(cluster, "."), "/"),
+				formattedTime,
+				fmt.Sprintf("`%s`", stringBody),
 			)
 
 			err := h.BandAPI.SendMessage(ctx, msg)
