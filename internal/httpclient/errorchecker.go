@@ -75,10 +75,10 @@ func (h *ErrorChecker) StopChecker() {
 }
 
 func (h *ErrorChecker) RunRequests(ctx context.Context, headers *errorchecker.HeadersStorage, log *slog.Logger, wg *sync.WaitGroup) {
-	tickerTableList := time.NewTicker(1 * time.Minute)
-	tickerGetImt := time.NewTicker(1 * time.Minute)
+	tickerTableList := time.NewTicker(60 * time.Second)
+	tickerGetImt := time.NewTicker(60 * time.Second)
 	h.BandAPI.SendMessage(ctx, bandclient.TextLine{ //TODO: err
-		Text: "logger is running with 1 minute interval",
+		Text: "**WB System Alerter has started...**",
 	})
 
 	for {
@@ -178,16 +178,21 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 				slog.String("cluster", cluster),
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
-			/*
-				msg := bandclient.NewOKMsg(
-					"worker debug", resp.Status, tableListV6EndPoint, c, formattedTime, "`Skipped`",
-				)
-				msg.SetLevel("standard")
 
-				err = h.BandAPI.SendMessage(ctx, msg)
-				if err != nil {
-					return fmt.Errorf("%s: %w", op, err)
-				}*/
+			//msg := bandclient.NewOKMsg(
+			//	"worker debug",
+			//	resp.Status,
+			//	tableListV6EndPoint,
+			//	cluster,
+			//	formattedTime,
+			//	"Skipped",
+			//)
+			//msg.SetLevel("standard")
+			//
+			//err = h.BandAPI.SendMessage(ctx, msg)
+			//if err != nil {
+			//	return fmt.Errorf("%s: %w", op, err)
+			//}
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
 
 			log.Info(

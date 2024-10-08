@@ -23,7 +23,7 @@ package bandclient
 const (
 	errColor Color = "#FF0000"
 	okColor  Color = "#008000"
-	footer         = "System Alert"
+	footer         = "WB System Alert"
 )
 
 type Color string
