@@ -75,14 +75,11 @@ func (h *ErrorChecker) StopChecker() {
 }
 
 func (h *ErrorChecker) RunRequests(ctx context.Context, headers *errorchecker.HeadersStorage, log *slog.Logger, wg *sync.WaitGroup) {
-	tickerTableList := time.NewTicker(5 * time.Second)
-	tickerGetImt := time.NewTicker(5 * time.Second)
-	//h.BandAPI.SendMessage(ctx, bandclient.TextLine{ //TODO: err
-	//	Text: "refactor ingress v1, restart",
-	//})
-	ctxTimeOut, cancel := context.WithTimeout(ctx, 60*time.Second)
-
-	defer cancel()
+	tickerTableList := time.NewTicker(1 * time.Minute)
+	tickerGetImt := time.NewTicker(1 * time.Minute)
+	h.BandAPI.SendMessage(ctx, bandclient.TextLine{ //TODO: err
+		Text: "logger is running with 1 minute interval",
+	})
 
 	for {
 		select {
@@ -90,7 +87,11 @@ func (h *ErrorChecker) RunRequests(ctx context.Context, headers *errorchecker.He
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := h.CheckTableList(ctxTimeOut, headers, log)
+
+				ctxTimeout, cancel := context.WithTimeout(ctx, 60*time.Second)
+				defer cancel()
+
+				err := h.CheckTableList(ctxTimeout, headers, log)
 				if err != nil {
 					log.Error("Error executing CheckTableList", "error", err, "handler", "CheckGetImt")
 					return
@@ -100,7 +101,11 @@ func (h *ErrorChecker) RunRequests(ctx context.Context, headers *errorchecker.He
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := h.CheckGetImt(ctxTimeOut, headers, log)
+
+				ctxTimeout, cancel := context.WithTimeout(ctx, 60*time.Second)
+				defer cancel()
+
+				err := h.CheckGetImt(ctxTimeout, headers, log)
 				if err != nil {
 					log.Error("Error executing CheckGetImt", "error", err, "handler", "CheckGetImt")
 					return
@@ -151,11 +156,11 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				return fmt.Errorf("%s: %w", op, err)
 			} else {
-				panic(err)
+				log.Error("ERROR", "error", "error doing checkTableList request")
+				continue
 			}
 
 		}
-		fmt.Println("tableList req sent")
 
 		defer resp.Body.Close()
 
@@ -173,16 +178,16 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 				slog.String("cluster", cluster),
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
+			/*
+				msg := bandclient.NewOKMsg(
+					"worker debug", resp.Status, tableListV6EndPoint, c, formattedTime, "`Skipped`",
+				)
+				msg.SetLevel("standard")
 
-			//msg := bandclient.NewOKMsg(
-			//	"worker debug", resp.Status, tableListV6EndPoint, host, formattedTime, "Skipped",
-			//)
-			//msg.SetLevel("standard")
-			//
-			//err = h.BandAPI.SendMessage(ctx, msg)
-			//if err != nil {
-			//	return fmt.Errorf("%s: %w", op, err)
-			//}
+				err = h.BandAPI.SendMessage(ctx, msg)
+				if err != nil {
+					return fmt.Errorf("%s: %w", op, err)
+				}*/
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
 
 			log.Info(
@@ -194,7 +199,12 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 			)
 
 			msg := bandclient.NewErrMsg(
-				mentionMembers, resp.Status, tableListV6EndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, stringBody,
+				mentionMembers,
+				resp.Status,
+				tableListV6EndPoint,
+				strings.Trim(strings.Trim(cluster, "."), "/"),
+				formattedTime,
+				fmt.Sprintf("`%s`", stringBody),
 			)
 			err := h.BandAPI.SendMessage(ctx, msg)
 			if err != nil {
@@ -238,7 +248,8 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				return fmt.Errorf("%s: %w", op, err)
 			} else {
-				panic(err)
+				log.Error("ERROR", "error", "error doing checkTableList request")
+				continue
 			}
 
 		}
@@ -256,18 +267,19 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 				"successful request",
 				slog.Bool("OK", true),
 				slog.String("op", op),
+				slog.String("cluster", cluster),
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
 
-			msg := bandclient.NewOKMsg(
-				"worker debug", resp.Status, getImtEndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, "Skipped",
-			)
-			msg.SetLevel("standard")
-
-			err := h.BandAPI.SendMessage(ctx, msg)
-			if err != nil {
-				return fmt.Errorf("%s.SendMessage: %w", err)
-			}
+			//msg := bandclient.NewOKMsg(
+			//	"worker debug", resp.Status, getImtEndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, "Skipped",
+			//)
+			//msg.SetLevel("standard")
+			//
+			//err := h.BandAPI.SendMessage(ctx, msg)
+			//if err != nil {
+			//	return fmt.Errorf("%s.SendMessage: %w", err)
+			//}
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
 			log.Info(
 				"successful request",
@@ -277,7 +289,7 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 			)
 
 			msg := bandclient.NewErrMsg(
-				mentionMembers, resp.Status, tableListV6EndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, stringBody,
+				mentionMembers, resp.Status, getImtEndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, fmt.Sprintf("`%s`", stringBody),
 			)
 
 			err := h.BandAPI.SendMessage(ctx, msg)
