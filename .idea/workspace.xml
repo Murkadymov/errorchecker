@@ -6,6 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="29ca4702-a99f-48da-8f43-e2ac9b7db558" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/errorchecker/errorchecker.exe" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/httpclient/errorchecker.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/httpclient/errorchecker.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

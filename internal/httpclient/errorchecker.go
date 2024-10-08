@@ -35,12 +35,13 @@ type ErrorChecker struct {
 
 type HTTPClient struct {
 	client      http.Client
+	host        string
 	addr        []string
 	stopChannel chan struct{}
 	wg          *sync.WaitGroup
 }
 
-func NewErrorChecker(host []string, token string, bandURL string, webHookEndpoint string) *ErrorChecker {
+func NewErrorChecker(host string, cluster []string, token string, bandURL string, webHookEndpoint string) *ErrorChecker {
 	return &ErrorChecker{
 		BandAPI: bandclient.NewBandClient(bandURL, webHookEndpoint),
 		TGClient: &telegramclient.TGClient{
@@ -54,7 +55,8 @@ func NewErrorChecker(host []string, token string, bandURL string, webHookEndpoin
 					},
 				},
 			},
-			addr:        host,
+			host:        host,
+			addr:        cluster,
 			stopChannel: make(chan struct{}),
 		}}
 }
@@ -129,10 +131,10 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 
 	method := http.MethodPost
 
-	for _, host := range h.addr {
+	for _, cluster := range h.addr {
 		payload := strings.NewReader(`{"sort":[{"columnID":11,"order":"desc"}],"filter":{"search":"","hasPhotoTags":0},"cursor":{"n":20}}`)
 
-		req, err := http.NewRequestWithContext(ctx, method, host+tableListV6EndPoint, payload)
+		req, err := http.NewRequestWithContext(ctx, method, h.host+cluster+tableListV6EndPoint, payload)
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -168,6 +170,7 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 				"successful request",
 				slog.Bool("OK", true),
 				slog.String("op", op),
+				slog.String("cluster", cluster),
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
 
@@ -186,11 +189,12 @@ func (h *ErrorChecker) CheckTableList(ctx context.Context, headers *errorchecker
 				"request failed",
 				slog.Bool("OK", false),
 				slog.String("op", op),
+				slog.String("cluster", cluster),
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
 
 			msg := bandclient.NewErrMsg(
-				mentionMembers, resp.Status, tableListV6EndPoint, host, formattedTime, stringBody,
+				mentionMembers, resp.Status, tableListV6EndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, stringBody,
 			)
 			err := h.BandAPI.SendMessage(ctx, msg)
 			if err != nil {
@@ -211,10 +215,10 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 
 	method := http.MethodPost
 
-	for _, host := range h.addr {
+	for _, cluster := range h.addr {
 		payload := strings.NewReader(`{"nmID":265938554}`)
 
-		req, err := http.NewRequestWithContext(ctx, method, host+getImtEndPoint, payload)
+		req, err := http.NewRequestWithContext(ctx, method, h.host+cluster+getImtEndPoint, payload)
 		if err != nil {
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				return fmt.Errorf("%s: %w", op, err)
@@ -255,15 +259,15 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
 
-			//msg := bandclient.NewOKMsg(
-			//	"worker debug", resp.Status, getImtEndPoint, host, formattedTime, "Skipped",
-			//)
-			//msg.SetLevel("standard")
-			//
-			//err := h.BandAPI.SendMessage(ctx, msg)
-			//if err != nil {
-			//	return fmt.Errorf("%s.SendMessage: %w", err)
-			//}
+			msg := bandclient.NewOKMsg(
+				"worker debug", resp.Status, getImtEndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, "Skipped",
+			)
+			msg.SetLevel("standard")
+
+			err := h.BandAPI.SendMessage(ctx, msg)
+			if err != nil {
+				return fmt.Errorf("%s.SendMessage: %w", err)
+			}
 		case http.StatusInternalServerError, http.StatusBadGateway, http.StatusGatewayTimeout, http.StatusServiceUnavailable:
 			log.Info(
 				"successful request",
@@ -272,7 +276,9 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 				slog.String("status", strconv.Itoa(resp.StatusCode)),
 			)
 
-			msg := bandclient.NewErrMsg(mentionMembers, resp.Status, tableListV6EndPoint, host, formattedTime, stringBody)
+			msg := bandclient.NewErrMsg(
+				mentionMembers, resp.Status, tableListV6EndPoint, strings.Trim(strings.Trim(cluster, "."), "/"), formattedTime, stringBody,
+			)
 
 			err := h.BandAPI.SendMessage(ctx, msg)
 			if err != nil {
@@ -285,6 +291,5 @@ func (h *ErrorChecker) CheckGetImt(ctx context.Context, headers *errorchecker.He
 			)
 		}
 	}
-
 	return nil
 }
