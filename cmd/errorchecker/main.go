@@ -25,7 +25,8 @@ func main() {
 	wg := &sync.WaitGroup{}
 
 	httpClient := httpclient.NewErrorChecker(
-		cfg.WB.Host,
+		os.Getenv("HOST"),
+		cfg.WB.Cluster,
 		"",
 		cfg.Band.BandURL,
 		os.Getenv("BAND_WEBHOOK_ENDPOINT"),
