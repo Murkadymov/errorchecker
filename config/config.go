@@ -28,25 +28,25 @@ func NewConfig() *Config {
 
 func FindEnv() (string, error) {
 
-	dir, _ := os.Getwd()
+	dir, _ := os.Getwd() //получаю текущую директорию
 
 	for {
-		envPath := filepath.Join(dir, ".env")
-		_, err := os.Stat(envPath)
+		envPath := filepath.Join(dir, ".env") //формирую путь к .env
+		_, err := os.Stat(envPath)            // проверяю есть ли такой файл
 		fmt.Println("current dir\n", envPath)
 		if err == nil {
 			fmt.Println("env file found")
 			return envPath, nil
 		}
 
-		parent := filepath.Dir(dir)
+		parent := filepath.Dir(dir) //если нету, получаю на директорию выше
 
 		if parent == dir {
 			fmt.Println("no upper directory")
 			break
 		}
 
-		dir = parent
+		dir = parent //присвиваю новую директорию выше в dir и теперь по ней прохожусь
 	}
 	return "", nil
 

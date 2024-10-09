@@ -41,4 +41,5 @@ func main() {
 
 	fmt.Println("received signal and read from ctx.Done")
 	fmt.Println("checker stopped")
+
 }
