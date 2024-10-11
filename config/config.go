@@ -1,82 +1,35 @@
 package config
 
 import (
-	"fmt"
-	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v3"
-	"log/slog"
 	"os"
-	"path/filepath"
+	"strings"
+
+	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	WB struct {
-		Host     string   `env:"HOST"`
-		Cluster  []string `yaml:"hostURL"`
-		Cookie   string   `env:"COOKIE_SECRET"`
-		Interval int      `yaml:"interval"`
-	} `yaml:"wb"`
-	Band struct {
-		BandURL     string `yaml:"bandURL"`
-		BandWebhook string `env:"BAND_WEBHOOK_ENDPOINT"`
-	} `yaml:"band"`
+	Host        string   `env:"HOST"`
+	Cluster     []string `env:"-"`
+	Cookie      string   `env:"COOKIE_SECRET"`
+	Interval    int      `env:"INTERVAL"`
+	BandURL     string   `env:"BAND_URL"`
+	BandWebhook string   `env:"BAND_WEBHOOK_ENDPOINT"`
 }
 
-func NewConfig() *Config {
-	return &Config{}
-}
+const envFileName = ".env"
 
-func FindEnv() (string, error) {
-
-	dir, _ := os.Getwd() //получаю текущую директорию
-
-	for {
-		envPath := filepath.Join(dir, ".env") //формирую путь к .env
-		_, err := os.Stat(envPath)            // проверяю есть ли такой файл
-		fmt.Println("current dir\n", envPath)
-		if err == nil {
-			fmt.Println("env file found")
-			return envPath, nil
-		}
-
-		parent := filepath.Dir(dir) //если нету, получаю на директорию выше
-
-		if parent == dir {
-			fmt.Println("no upper directory")
-			break
-		}
-
-		dir = parent //присвиваю новую директорию выше в dir и теперь по ней прохожусь
-	}
-	return "", nil
-
-}
-
-func MustLoad(log *slog.Logger) *Config {
-	cfg := NewConfig()
-
-	yamlCfg, err := os.Open("E:\\Projects\\errorchecker\\config\\config.yaml")
-	if err != nil {
-		fmt.Println("error openning yaml file", err)
-	}
-	defer yamlCfg.Close()
-
-	err = yaml.NewDecoder(yamlCfg).Decode(cfg)
-	if err != nil {
-		fmt.Println("error decoding yaml file to struct")
+func MustParse() *Config {
+	if err := godotenv.Load(envFileName); err != nil {
+		panic(err)
 	}
 
-	envPath, err := FindEnv()
-	if err != nil {
-		log.Error("error finding env file", "err", err.Error())
-		return nil
+	var cfg Config
+	if err := env.Parse(cfg); err != nil {
+		panic(err)
 	}
 
-	err = godotenv.Load(envPath)
-	if err != nil {
-		log.Error("error loading env file", "error", err.Error())
-		return nil
-	}
+	cfg.Cluster = strings.Split(os.Getenv("CLUSTER"), ",")
 
-	return cfg
+	return &cfg
 }
